@@ -18,19 +18,21 @@ from sklearn.metrics import pairwise_distances
 
 warnings.filterwarnings('ignore')
 
-# Clase para Análisis Exploratorio de Datos (EDA)
 class EDA:
     def __init__(self, df):
         self.df = df
 
     def analyze(self):
         """Muestra información básica, valores nulos, boxplots y la matriz de correlación"""
-        print("\n Información del dataset:")
+        print("\nInformación del dataset:")
         print(self.df.info())
-        print("\n Primeras 5 filas:")
+        print("\nPrimeras 5 filas:")
         print(self.df.head())
-        print("\n Estadísticas descriptivas:")
-        print(self.df.describe())
+        print("\nEstadísticas descriptivas:")
+        print(self.df.describe(include='all'))  # Incluye estadísticas de categóricas
+
+        # Manejo de variables categóricas
+        self.handle_categorical()
 
         # Visualizar valores nulos
         plt.figure(figsize=(10,5))
@@ -40,22 +42,45 @@ class EDA:
 
         # Boxplots para detectar outliers
         plt.figure(figsize=(15,8))
-        self.df.boxplot(rot=45, grid=False)
-        plt.title("Boxplots de las variables")
+        self.df.select_dtypes(include=[np.number]).boxplot(rot=45, grid=False)
+        plt.title("Boxplots de las variables numéricas")
         plt.show()
 
         # Matriz de correlación
         plt.figure(figsize=(12,8))
-        sns.heatmap(self.df.corr(), annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
+        sns.heatmap(self.df.corr(numeric_only=True), annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
         plt.title("Matriz de Correlación")
         plt.show()
 
-# Clase para Algoritmos No Supervisados
-class UnsupervisedLearning:
+    def handle_categorical(self):
+        """Maneja las variables categóricas para el análisis exploratorio"""
+        categorical_cols = self.df.select_dtypes(include=['object']).columns
+        if len(categorical_cols) > 0:
+            print("\nVariables categóricas detectadas:")
+            for col in categorical_cols:
+                print(f"- {col}: {self.df[col].nunique()} categorías -> {self.df[col].unique()}")
+
+                # Gráfico de barras para variables categóricas
+                plt.figure(figsize=(8,4))
+                sns.countplot(x=self.df[col], data=self.df, palette="coolwarm")
+                plt.xticks(rotation=45)
+                plt.title(f"Distribución de {col}")
+                plt.show()
+
+            # Opción para codificar categóricas (si se va a modelar después)
+            print("\nCodificando variables categóricas con Label Encoding...")
+            from sklearn.preprocessing import LabelEncoder
+            for col in categorical_cols:
+                self.df[col] = LabelEncoder().fit_transform(self.df[col])
+
+            print(df_classification.dtypes)
+            print(df_classification.head())
+
+# Clase para Clustering
+class Clustering:
     def __init__(self, df):
         self.df = df
         self.X_scaled = StandardScaler().fit_transform(df)  # Normalización automática
-        
 
     def apply_kmeans(self, max_k=10, k=3):
         """Aplica K-Means, grafica el método del codo y muestra los clusters"""
@@ -216,23 +241,38 @@ class UnsupervisedLearning:
         # Imprimir resumen
         print("\nResumen de PCA:")
         print(f"Varianza explicada por componente: {explained_variance_ratio}")
-        print(f"Varianza explicada acumulada: {cumulative_variance_ratio}")
-        
+        print(f"Varianza explicada acumulada: {cumulative_variance_ratio}")        
         return pca_df
 
-# Cargar los datos
-data_path = "C:\\Users\\Jorge\\OneDrive\\Documentos\\Jorge\\LEAD university\\2025\\Mineria de datos avanzada\\Caso de estudio 1\\wine-clustering.csv"
-df = pd.read_csv(data_path)
+class Classification:
+    def __init__(self, df):
+        self.df = df
+        self.X_scaled = StandardScaler().fit_transform(df)  # Normalización automática
 
-# Aplicar EDA
+   
+
+
+# Cargar los datos de clustering
+data_path_clustering = "C:\\Users\\Jorge\\OneDrive\\Documentos\\Jorge\\LEAD university\\2025\\Mineria de datos avanzada\\Caso de estudio 1\\wine-clustering.csv"
+df = pd.read_csv(data_path_clustering)
+
+# Aplicar EDA para Clustering
 eda = EDA(df)
 #eda.analyze()
 
-# Aplicar K-Means
-unsupervised = UnsupervisedLearning(df)
-#unsupervised.apply_kmeans()
-#unsupervised.apply_hac()
+# Aplicar Clustering
+clustering = Clustering(df)
+#clustering.apply_kmeans()
+#clustering.apply_hac()
+#clustering.apply_pca()
 
-# Aplicar PCA
-unsupervised.apply_pca()
+
+
+# Cargar los datos de classification
+data_path_classification = "C:\\Users\\Jorge\\OneDrive\\Documentos\\Jorge\\LEAD university\\2025\\Mineria de datos avanzada\\Caso de estudio 1\\diabetes_V2.csv"
+df_classification = pd.read_csv(data_path_classification)
+
+# EDA para Classification
+eda_classification = EDA(df_classification)
+eda_classification.analyze()
 
