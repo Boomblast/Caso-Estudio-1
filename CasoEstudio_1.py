@@ -8,6 +8,8 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from sklearn.metrics import silhouette_score
 from scipy.cluster.hierarchy import fcluster
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 import sklearn
 import numpy as np
@@ -144,15 +146,93 @@ class UnsupervisedLearning:
         print("- Cercano a 0: Clusters solapados")
         print("- Cercano a -1: Posible asignación incorrecta de muestras a clusters")
 
+    def apply_pca(self, n_components=2):
+        """Aplica PCA y visualiza los resultados"""
+        # Aplicar PCA
+        pca = PCA(n_components=n_components)
+        X_pca = pca.fit_transform(self.X_scaled)
+        
+        # Calcular varianza explicada
+        explained_variance_ratio = pca.explained_variance_ratio_
+        cumulative_variance_ratio = np.cumsum(explained_variance_ratio)
+        
+        # Visualizar varianza explicada
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.bar(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio)
+        plt.xlabel('Componente Principal')
+        plt.ylabel('Ratio de Varianza Explicada')
+        plt.title('Varianza Explicada por Componente')
+        
+        plt.subplot(1, 2, 2)
+        plt.plot(range(1, len(cumulative_variance_ratio) + 1), cumulative_variance_ratio, 
+                marker='o', linestyle='--')
+        plt.xlabel('Número de Componentes')
+        plt.ylabel('Varianza Explicada Acumulada')
+        plt.title('Varianza Explicada Acumulada vs Componentes')
+        plt.tight_layout()
+        plt.show()
+        
+        # Crear DataFrame con resultados de PCA
+        pca_df = pd.DataFrame(data=X_pca, columns=[f'PC{i+1}' for i in range(n_components)])
+        
+        # Si hay clusters previos, agregarlos al DataFrame
+        if 'Cluster' in self.df.columns:
+            pca_df['Cluster'] = self.df['Cluster']
+            
+            # Visualizar clusters en espacio PCA
+            plt.figure(figsize=(10, 6))
+            scatter = plt.scatter(pca_df['PC1'], pca_df['PC2'], c=pca_df['Cluster'], cmap='viridis')
+            plt.xlabel('Primera Componente Principal')
+            plt.ylabel('Segunda Componente Principal')
+            plt.title('Visualización de Clusters en Espacio PCA')
+            plt.colorbar(scatter, label='Cluster')
+            plt.show()
+        else:
+            # Visualizar datos sin clusters
+            plt.figure(figsize=(10, 6))
+            plt.scatter(pca_df['PC1'], pca_df['PC2'])
+            plt.xlabel('Primera Componente Principal')
+            plt.ylabel('Segunda Componente Principal')
+            plt.title('Visualización de Datos en Espacio PCA')
+            plt.show()
+            
+        # Mostrar la contribución de las variables originales a los componentes principales
+        loadings = pd.DataFrame(
+            pca.components_.T,
+            columns=[f'PC{i+1}' for i in range(n_components)],
+            index=self.df.columns
+        )
+        
+        plt.figure(figsize=(10, 6))
+        sns.heatmap(loadings, annot=True, cmap='coolwarm', center=0)
+        plt.title('Contribución de Variables a Componentes Principales')
+        plt.show()
+        
+        # Guardar resultados en el objeto
+        self.pca = pca
+        self.pca_df = pca_df
+        
+        # Imprimir resumen
+        print("\nResumen de PCA:")
+        print(f"Varianza explicada por componente: {explained_variance_ratio}")
+        print(f"Varianza explicada acumulada: {cumulative_variance_ratio}")
+        
+        return pca_df
+
 # Cargar los datos
 data_path = "C:\\Users\\Jorge\\OneDrive\\Documentos\\Jorge\\LEAD university\\2025\\Mineria de datos avanzada\\Caso de estudio 1\\wine-clustering.csv"
 df = pd.read_csv(data_path)
 
 # Aplicar EDA
 eda = EDA(df)
-eda.analyze()
+#eda.analyze()
 
 # Aplicar K-Means
 unsupervised = UnsupervisedLearning(df)
-unsupervised.apply_kmeans()
-unsupervised.apply_hac()
+#unsupervised.apply_kmeans()
+#unsupervised.apply_hac()
+
+# Aplicar PCA
+unsupervised.apply_pca()
+
