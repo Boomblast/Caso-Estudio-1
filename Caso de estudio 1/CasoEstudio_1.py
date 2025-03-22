@@ -10,6 +10,20 @@ from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from sklearn.metrics import silhouette_score
 from scipy.cluster.hierarchy import fcluster
 from sklearn.decomposition import PCA
+<<<<<<< HEAD
+=======
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import statistics
+from sklearn.linear_model import LinearRegression, Lasso, LassoCV, Ridge, RidgeCV
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score, KFold, GridSearchCV, train_test_split
+from tqdm import tqdm
+from sklearn.metrics import make_scorer, mean_squared_error, r2_score, confusion_matrix, roc_auc_score, mean_absolute_error, roc_curve, auc, precision_recall_curve, accuracy_score, precision_score, recall_score, classification_report
+
+import sklearn
+>>>>>>> c4c1db0995d1dce09fb2d1dbc6aa3ece4292828c
 import numpy as np
 
 warnings.filterwarnings('ignore')
@@ -266,7 +280,98 @@ class Clustering:
         print(f"Varianza explicada por componente: {explained_variance_ratio}")
         print(f"Varianza explicada acumulada: {cumulative_variance_ratio}")        
         return pca_df
+# Clase para la regresion
+class Regresion:
+    def __init__(self, df, target_column):
+        self.df = df
+        self.target_column = target_column
+        self.features = pd.get_dummies(df.drop(columns=[target_column]), drop_first=True)
+        self.target = df[target_column]
+        self.scaler = StandardScaler()
+        self.features_scaled = self.scaler.fit_transform(self.features)
+        self.modelos = {
+            'linear': LinearRegression(),
+            'lasso': Lasso(),
+            'ridge': Ridge(),
+            'svr': SVR(),
+            'decision_tree': DecisionTreeRegressor(),
+            'random_forest': RandomForestRegressor()
+        }
+        self.resultados = []
 
+    def ajustar_hiperparametros(self):
+        parametros = {
+            'lasso': {'alpha': np.logspace(-4, 0, 10)},
+            'ridge': {'alpha': np.logspace(-4, 0, 10)},
+            'svr': {'C': [0.1, 1.0, 10.0], 'kernel': ['linear', 'rbf']}
+        }
+        
+        for nombre, modelo in self.modelos.items():
+            if nombre in parametros:
+                print(f"Ajustando hiperparámetros para {nombre}...")
+                grid = GridSearchCV(modelo, parametros[nombre], cv=5)
+                grid.fit(self.features_scaled, self.target)
+                self.modelos[nombre] = grid.best_estimator_
+
+    def validar_modelos(self):
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        
+        for nombre, modelo in tqdm(self.modelos.items(), desc="Entrenando modelos"):
+            r2_scores = []
+            mse_scores = []
+            
+            for train_index, val_index in kf.split(self.features_scaled):
+                X_train, X_val = self.features_scaled[train_index], self.features_scaled[val_index]
+                y_train, y_val = self.target.iloc[train_index], self.target.iloc[val_index]
+                
+                modelo.fit(X_train, y_train)
+                predictions = modelo.predict(X_val)
+                mse = mean_squared_error(y_val, predictions)
+                r2 = r2_score(y_val, predictions)
+                
+                mse_scores.append(mse)
+                r2_scores.append(r2)
+            
+            mse_promedio = np.mean(mse_scores)
+            r2_promedio = np.mean(r2_scores)
+            std_mse = np.std(mse_scores)
+            std_r2 = np.std(r2_scores)
+            
+            self.resultados.append((nombre, mse_promedio, r2_promedio, std_mse, std_r2))
+
+    def mostrar_top_3_por_familia(self):
+        familias = {
+            'lineales': ['linear', 'lasso', 'ridge'],
+            'arboles': ['decision_tree', 'random_forest'],
+            'otros': ['svr']
+        }
+
+        print("=== Top 3 por Familia ===")
+        for familia, modelos in familias.items():
+            resultados_familia = [r for r in self.resultados if r[0] in modelos]
+            resultados_familia_ordenados = sorted(resultados_familia, key=lambda x: x[2], reverse=True)[:3]
+            print(f"--- {familia.capitalize()} ---")
+            for i, (modelo, mse_promedio, r2_promedio, std_mse, std_r2) in enumerate(resultados_familia_ordenados, 1):
+                print(f"Top {i} - Modelo: {modelo}")
+                print(f"R^2 promedio: {round(r2_promedio, 4)}")
+                print(f"MSE promedio: {round(mse_promedio, 2)}")
+                print(f"Desviación estándar R^2: {round(std_r2, 4)}")
+                print(f"Desviación estándar MSE: {round(std_mse, 2)}")
+                print("\n--------------------\n")
+
+    def mostrar_top_3_general(self):
+        resultados_ordenados = sorted(self.resultados, key=lambda x: x[2], reverse=True)[:3]
+
+        print("=== Top 3 Modelos de Regresión ===")
+        for i, (modelo, mse_promedio, r2_promedio, std_mse, std_r2) in enumerate(resultados_ordenados, 1):
+            print(f"Top {i} - Modelo: {modelo}")
+            print(f"R^2 promedio: {round(r2_promedio, 4)}")
+            print(f"MSE promedio: {round(mse_promedio, 2)}")
+            print(f"Desviación estándar R^2: {round(std_r2, 4)}")
+            print(f"Desviación estándar MSE: {round(std_mse, 2)}")
+            print("\n--------------------\n")        
+
+<<<<<<< HEAD
 class Classification:
     def __init__(self, df, target_column):
         self.df = df
@@ -399,6 +504,15 @@ class Classification:
         plt.title('Curva ROC - Random Forest')
         plt.legend(loc="lower right")
         plt.show()
+=======
+# Cargar los datos
+
+# Ruta de Jorge
+#data_path = "C:\\Users\\Jorge\\OneDrive\\Documentos\\Jorge\\LEAD university\\2025\\Mineria de datos avanzada\\Caso de estudio 1\\wine-clustering.csv"
+#df = pd.read_csv(data_path)
+#Ruta Relativa
+df = pd.read_csv("wine-clustering.csv")
+>>>>>>> c4c1db0995d1dce09fb2d1dbc6aa3ece4292828c
 
     def cross_validate(self, model, cv=5):
         """Realiza validación cruzada en un modelo"""
